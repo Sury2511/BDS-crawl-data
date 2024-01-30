@@ -10,15 +10,17 @@ import threading
 from datetime import datetime
 from selenium.common.exceptions import TimeoutException
 
-def process_pages(thread_id, num_threads, total_pages, data_lock, property_data,driver):
+def process_pages(thread_id, num_threads, total_pages, data_lock, property_data,driver,url):
     last_successful_page = thread_id - num_threads
     while last_successful_page < total_pages:
         try:
             for page_num in range(last_successful_page + num_threads, total_pages + 1, num_threads):
                 print(page_num)
                 if page_num == 1:
-                    url = "https://batdongsan.com.vn/nha-dat-ban-tp-hcm"
-                    driver.get(url)
+                    if url == hcm_url:
+                        driver.get("https://batdongsan.com.vn/nha-dat-ban-tp-hcm")
+                    else:
+                        driver.get("https://batdongsan.com.vn/nha-dat-ban-ha_noi")                      
                     dropdown_button = WebDriverWait(driver, 10).until(
                         EC.element_to_be_clickable((By.CSS_SELECTOR, ".js__bds-select-button"))
                     )
@@ -28,8 +30,7 @@ def process_pages(thread_id, num_threads, total_pages, data_lock, property_data,
                     )
                     newest_option.click()
                 else:
-                    url = 'https://batdongsan.com.vn/nha-dat-ban-tp-hcm/p{}?sortValue=1'.format(page_num)
-                    driver.get(url)
+                    driver.get(url.format(page_num))
                 
                 
                 html = driver.page_source
@@ -84,13 +85,20 @@ def process_pages(thread_id, num_threads, total_pages, data_lock, property_data,
             driver.quit()
             break    
 
-def main():
+def main(url):
     columns_headers = ['title', 'address', 'price', 'area', 'price_per_m2', 'bedrooms', 'toilets', 'date']
     file_exists = os.path.isfile('bds-hcm.xlsx')
+    file_exists = os.path.isfile('bds-hn.xlsx')
 
-    if not file_exists:
-        with pd.ExcelWriter('bds-hcm.xlsx', engine='openpyxl') as writer:
-            pd.DataFrame(columns=columns_headers).to_excel(writer, sheet_name='Sheet1', index=False)
+    if url == hcm_url:
+        if not file_exists:
+            with pd.ExcelWriter('bds-hcm.xlsx', engine='openpyxl') as writer:
+                pd.DataFrame(columns=columns_headers).to_excel(writer, sheet_name='Sheet1', index=False)
+                
+    elif url == hn_url:        
+        if not file_exists:
+            with pd.ExcelWriter('bds-hn.xlsx', engine='openpyxl') as writer:
+                pd.DataFrame(columns=columns_headers).to_excel(writer, sheet_name='Sheet1', index=False)
 
     property_data = []
     data_lock = threading.Lock()
@@ -98,12 +106,12 @@ def main():
     # Setup Chrome options for undetected_chromedriver
 
     num_threads = 4  # Number of chrome open
-    total_pages = 100  # Total number of pages to scrape
+    total_pages = 50  # Total number of pages to scrape
 
     threads = []
     for thread_id in range(1,num_threads + 1):
         driver = uc.Chrome()
-        t = threading.Thread(target=process_pages, args=(thread_id, num_threads, total_pages, data_lock, property_data,driver))
+        t = threading.Thread(target=process_pages, args=(thread_id, num_threads, total_pages, data_lock, property_data,driver,url))
         threads.append(t)
         t.start()
 
@@ -111,14 +119,25 @@ def main():
         thread.join()
 
     # Save to Excel
-    df = pd.DataFrame(property_data)
-    with pd.ExcelWriter('bds-hcm.xlsx', engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
-        startrow = writer.sheets['Sheet1'].max_row if 'Sheet1' in writer.sheets else 0
-        df.to_excel(writer, sheet_name='Sheet1', index=False, header=None, startrow=startrow)
+    if url == hcm_url:
+        df = pd.DataFrame(property_data)
+        with pd.ExcelWriter('bds-hcm.xlsx', engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+            startrow = writer.sheets['Sheet1'].max_row if 'Sheet1' in writer.sheets else 0
+            df.to_excel(writer, sheet_name='Sheet1', index=False, header=None, startrow=startrow)
+            
+    elif url == hn_url:
+        df = pd.DataFrame(property_data)
+        with pd.ExcelWriter('bds-hn.xlsx', engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+            startrow = writer.sheets['Sheet1'].max_row if 'Sheet1' in writer.sheets else 0
+            df.to_excel(writer, sheet_name='Sheet1', index=False, header=None, startrow=startrow)
 
 if __name__ == "__main__":
     start = time.time()
-    main()
+    hcm_url = 'https://batdongsan.com.vn/nha-dat-ban-tp-hcm/p{}?sortValue=1'
+    hn_url = 'https://batdongsan.com.vn/nha-dat-ban-ha-noi/p{}?sortValue=1'
+    main(hcm_url)
+    time.sleep(5)
+    main(hn_url)
     end = time.time()
     print(end-start)
 
