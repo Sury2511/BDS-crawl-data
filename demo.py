@@ -72,10 +72,10 @@ def process_pages(thread_id, num_threads, total_pages, data_lock, property_data,
             
                 
         except TimeoutException as e:
-            print(f"Timeout occurred in thread {thread_id}: {e}")
+            print(f"Timeout occurred in thread {thread_id}")
             # Đóng và khởi động lại driver khi gặp TimeoutException
             driver.quit()
-            print("Restarting the driver and retrying...")
+            print("Restarting the driver in 5 seconds")
             time.sleep(5)
             driver = uc.Chrome()
 
