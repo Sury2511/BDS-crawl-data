@@ -12,15 +12,20 @@ from selenium.common.exceptions import TimeoutException
 
 def process_pages(thread_id, num_threads, total_pages, data_lock, property_data,driver,url):
     last_successful_page = thread_id - num_threads
-    while last_successful_page < total_pages:
+    while last_successful_page <= total_pages:
         try:
             for page_num in range(last_successful_page + num_threads, total_pages + 1, num_threads):
                 print(page_num)
                 if page_num == 1:
                     if url == hcm_url:
                         driver.get("https://batdongsan.com.vn/nha-dat-ban-tp-hcm")
-                    else:
-                        driver.get("https://batdongsan.com.vn/nha-dat-ban-ha_noi")                      
+                    elif url == hn_url:
+                        driver.get("https://batdongsan.com.vn/nha-dat-ban-ha_noi")   
+                    elif url == hn_rent_url:
+                        driver.get("https://batdongsan.com.vn/nha-dat-cho-thue-ha-noi")
+                    elif url == hcm_rent_url:
+                        driver.get("https://batdongsan.com.vn/nha-dat-cho-thue-tp-hcm")
+                                           
                     dropdown_button = WebDriverWait(driver, 10).until(
                         EC.element_to_be_clickable((By.CSS_SELECTOR, ".js__bds-select-button"))
                     )
@@ -89,15 +94,31 @@ def main(url):
     columns_headers = ['title', 'address', 'price', 'area', 'price_per_m2', 'bedrooms', 'toilets', 'date']
     file_exists = os.path.isfile('bds-hcm.xlsx')
     file_exists = os.path.isfile('bds-hn.xlsx')
+    file_exists = os.path.isfile('bds-rent-hcm.xlsx')
+    file_exists = os.path.isfile('bds-rent-hn.xlsx')
 
     if url == hcm_url:
+        total_pages = 20
         if not file_exists:
             with pd.ExcelWriter('bds-hcm.xlsx', engine='openpyxl') as writer:
                 pd.DataFrame(columns=columns_headers).to_excel(writer, sheet_name='Sheet1', index=False)
                 
-    elif url == hn_url:        
+    elif url == hn_url:     
+        total_pages = 20 
         if not file_exists:
             with pd.ExcelWriter('bds-hn.xlsx', engine='openpyxl') as writer:
+                pd.DataFrame(columns=columns_headers).to_excel(writer, sheet_name='Sheet1', index=False)
+                
+    elif url == hn_rent_url:     
+        total_pages = 20   
+        if not file_exists:
+            with pd.ExcelWriter('bds-rent-hn.xlsx', engine='openpyxl') as writer:
+                pd.DataFrame(columns=columns_headers).to_excel(writer, sheet_name='Sheet1', index=False)
+                
+    elif url == hcm_rent_url:     
+        total_pages = 20   
+        if not file_exists:
+            with pd.ExcelWriter('bds-rent-hcm.xlsx', engine='openpyxl') as writer:
                 pd.DataFrame(columns=columns_headers).to_excel(writer, sheet_name='Sheet1', index=False)
 
     property_data = []
@@ -106,7 +127,6 @@ def main(url):
     # Setup Chrome options for undetected_chromedriver
 
     num_threads = 4  # Number of chrome open
-    total_pages = 50  # Total number of pages to scrape
 
     threads = []
     for thread_id in range(1,num_threads + 1):
@@ -130,14 +150,33 @@ def main(url):
         with pd.ExcelWriter('bds-hn.xlsx', engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
             startrow = writer.sheets['Sheet1'].max_row if 'Sheet1' in writer.sheets else 0
             df.to_excel(writer, sheet_name='Sheet1', index=False, header=None, startrow=startrow)
+            
+    elif url == hn_rent_url:
+        df = pd.DataFrame(property_data)
+        with pd.ExcelWriter('bds-rent-hn.xlsx', engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+            startrow = writer.sheets['Sheet1'].max_row if 'Sheet1' in writer.sheets else 0
+            df.to_excel(writer, sheet_name='Sheet1', index=False, header=None, startrow=startrow)
+            
+    elif url == hcm_rent_url:
+        df = pd.DataFrame(property_data)
+        with pd.ExcelWriter('bds-rent-hcm.xlsx', engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+            startrow = writer.sheets['Sheet1'].max_row if 'Sheet1' in writer.sheets else 0
+            df.to_excel(writer, sheet_name='Sheet1', index=False, header=None, startrow=startrow)
 
 if __name__ == "__main__":
     start = time.time()
     hcm_url = 'https://batdongsan.com.vn/nha-dat-ban-tp-hcm/p{}?sortValue=1'
     hn_url = 'https://batdongsan.com.vn/nha-dat-ban-ha-noi/p{}?sortValue=1'
+    hcm_rent_url = 'https://batdongsan.com.vn/nha-dat-cho-thue-tp-hcm/p{}?sortValue=1'
+    hn_rent_url = 'https://batdongsan.com.vn/nha-dat-cho-thue-ha-noi/p{}?sortValue=1'
+    
     main(hcm_url)
     time.sleep(5)
     main(hn_url)
+    time.sleep(5)
+    main(hcm_rent_url)
+    time.sleep(5)
+    main(hn_rent_url)
     end = time.time()
     print(end-start)
 
