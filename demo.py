@@ -76,6 +76,8 @@ def process_pages(thread_id, num_threads, total_pages, data_lock, property_data,
             # Đóng và khởi động lại driver khi gặp TimeoutException
             driver.quit()
             print("Restarting the driver and retrying...")
+            driver = uc.Chrome()
+
             
         else:
             driver.quit()
