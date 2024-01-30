@@ -16,11 +16,11 @@ def process_pages(thread_id, num_threads, total_pages, data_lock, property_data,
         if page_num == 1:
             url = "https://batdongsan.com.vn/nha-dat-ban-tp-hcm"
             driver.get(url)
-            dropdown_button = WebDriverWait(driver, 10).until(
+            dropdown_button = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, ".js__bds-select-button"))
             )
             dropdown_button.click()
-            newest_option = WebDriverWait(driver, 10).until(
+            newest_option = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, "//li[contains(@class, 'js__option')][@vl='1']"))
             )
             newest_option.click()
@@ -51,6 +51,7 @@ def process_pages(thread_id, num_threads, total_pages, data_lock, property_data,
             if date_obj != datetime.now().date():
                 exit_while = True
                 break
+            
             page_data.append([title, district, price, area, price_per_m2, bedrooms, toilets, day])
         
         if exit_while:
@@ -63,7 +64,6 @@ def process_pages(thread_id, num_threads, total_pages, data_lock, property_data,
     driver.quit()
 
 def main():
-    
     columns_headers = ['title', 'address', 'price', 'area', 'price_per_m2', 'bedrooms', 'toilets', 'date']
     file_exists = os.path.isfile('bds-hcm.xlsx')
 
@@ -80,7 +80,7 @@ def main():
     total_pages = 100  # Total number of pages to scrape
 
     threads = []
-    for thread_id in range(num_threads):
+    for thread_id in range(1,num_threads + 1):
         driver = uc.Chrome(version_main=121)
         t = threading.Thread(target=process_pages, args=(thread_id, num_threads, total_pages, data_lock, property_data,driver))
         threads.append(t)
